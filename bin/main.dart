@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:xml/xml.dart';
 
 void printHelp() {
-  print('Usage: gwigen <directory_containing_wallpapers>');
+  print('Usage: wgigen <directory_containing_wallpapers> <name_of_xml_file>');
 }
 
 void main(List<String> arguments) async {
-  if (arguments.length != 1) {
+  if (arguments.length != 2) {
     printHelp();
     exit(1);
   }
@@ -22,10 +22,16 @@ void main(List<String> arguments) async {
 
   await directory.list().forEach((file) {
     if (file.absolute.path.endsWith('.jpg') ||
-        file.absolute.path.endsWith('.png')) {
+        file.absolute.path.endsWith('.png') ||
+        file.absolute.path.endsWith('.jpeg')) {
       wallpaperPaths.add(file.absolute.path);
     }
   });
+
+  if (wallpaperPaths.isEmpty) {
+    print('No wallpapers found in the given folder...');
+    exit(1);
+  }
 
   final builder = XmlBuilder();
 
@@ -54,7 +60,11 @@ void main(List<String> arguments) async {
     }
   });
 
-  var document = builder.buildDocument();
+  var document = builder.buildDocument().toXmlString(pretty: true);
 
-  print(document.toXmlString(pretty: true));
+  var fileName =
+      arguments[1].endsWith('.xml') ? arguments[1] : '${arguments[1]}.xml';
+
+  var file = File(fileName);
+  await file.writeAsString(document);
 }
