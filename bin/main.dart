@@ -6,46 +6,47 @@ void printHelp() {
   print('Usage: wgigen <directory_containing_wallpapers> <name_of_xml_file>');
 }
 
-void main(List<String> arguments) async {
+Future<bool> validateArguments(List<String> arguments) async {
   if (arguments.length != 2) {
-    printHelp();
-    exit(1);
+    return false;
   }
 
   if (!await FileSystemEntity.isDirectory(arguments[0])) {
-    printHelp();
-    exit(1);
+    return false;
   }
 
-  var directory = Directory(arguments[0]);
-  var wallpaperPaths = [];
+  return true;
+}
+
+Future<List<String>> loadFilePaths(String path) async {
+  var directory = Directory(path);
+  var filePaths = [];
 
   await directory.list().forEach((file) {
     if (file.absolute.path.endsWith('.jpg') ||
         file.absolute.path.endsWith('.png') ||
         file.absolute.path.endsWith('.jpeg')) {
-      wallpaperPaths.add(file.absolute.path);
+      filePaths.add(file.absolute.path);
     }
   });
 
-  if (wallpaperPaths.isEmpty) {
-    print('No wallpapers found in the given folder...');
-    exit(1);
-  }
+  return filePaths;
+}
 
+Future<String> buildXMLString(List<String> paths) async {
   final builder = XmlBuilder();
 
   builder.processing('xml', 'version="1.0"');
   builder.xml(XmlDoctype('wallpapers SYSTEM "gnome-wp-list.dtd"').toString());
   builder.element('wallpapers', nest: () {
-    for (var wallpaper in wallpaperPaths) {
+    for (var path in paths) {
       builder.element('wallpaper', nest: () {
         builder.attribute('deleted', false);
         builder.element('name', nest: () {
-          builder.text(wallpaper.split('/').last.split('.').first);
+          builder.text(path.split('/').last.split('.').first);
         });
         builder.element('filename', nest: () {
-          builder.text(wallpaper);
+          builder.text(path);
         });
         builder.element('options', nest: () {
           builder.text('zoom');
@@ -60,11 +61,35 @@ void main(List<String> arguments) async {
     }
   });
 
-  var document = builder.buildDocument().toXmlString(pretty: true);
+  return builder.buildDocument().toXmlString(pretty: true);
+}
 
-  var fileName =
-      arguments[1].endsWith('.xml') ? arguments[1] : '${arguments[1]}.xml';
+Future<void> saveToFile(String fileName, String xmlString) async {
+  fileName = fileName.endsWith('.xml') ? fileName : '$fileName.xml';
 
   var file = File(fileName);
-  await file.writeAsString(document);
+  await file.writeAsString(xmlString);
+}
+
+void main(List<String> arguments) {
+  validateArguments(arguments)
+    .then((value) {
+      if (!value) {
+        printHelp();
+        exit(1);
+      }
+
+      loadFilePaths(arguments[0])
+        .then((paths) {
+          if (paths.isEmpty) {
+            print('Could not find any wallpapers in the provided directory.');
+            printHelp();
+          }
+
+          buildXMLString(paths)
+            .then((xmlString) {
+              saveToFile(arguments[1], xmlString);
+            });
+        });
+    });
 }
