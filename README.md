@@ -4,6 +4,12 @@ This program can generate the XML-file that defines the wallpapers GNOME can use
 
 Note that currently this only works with JPG and PNG files. More will come in the future.
 
+## Compilation
+
+```
+dart compile exe bin/main.dart -o wgigen
+```
+
 ## Usage
 
 ```
