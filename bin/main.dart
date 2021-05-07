@@ -20,7 +20,7 @@ Future<bool> validateArguments(List<String> arguments) async {
 
 Future<List<String>> loadFilePaths(String path) async {
   var directory = Directory(path);
-  var filePaths = [];
+  var filePaths = <String>[];
 
   await directory.list().forEach((file) {
     if (file.absolute.path.endsWith('.jpg') ||
@@ -72,24 +72,21 @@ Future<void> saveToFile(String fileName, String xmlString) async {
 }
 
 void main(List<String> arguments) {
-  validateArguments(arguments)
-    .then((value) {
-      if (!value) {
+  validateArguments(arguments).then((value) {
+    if (!value) {
+      printHelp();
+      exit(1);
+    }
+
+    loadFilePaths(arguments[0]).then((paths) {
+      if (paths.isEmpty) {
+        print('Could not find any wallpapers in the provided directory.');
         printHelp();
-        exit(1);
       }
 
-      loadFilePaths(arguments[0])
-        .then((paths) {
-          if (paths.isEmpty) {
-            print('Could not find any wallpapers in the provided directory.');
-            printHelp();
-          }
-
-          buildXMLString(paths)
-            .then((xmlString) {
-              saveToFile(arguments[1], xmlString);
-            });
-        });
+      buildXMLString(paths).then((xmlString) {
+        saveToFile(arguments[1], xmlString);
+      });
     });
+  });
 }
