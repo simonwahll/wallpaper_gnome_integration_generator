@@ -71,22 +71,20 @@ Future<void> saveToFile(String fileName, String xmlString) async {
   await file.writeAsString(xmlString);
 }
 
-void main(List<String> arguments) {
-  validateArguments(arguments).then((value) {
-    if (!value) {
-      printHelp();
-      exit(1);
-    }
+void main(List<String> arguments) async {
+  var ok = await validateArguments(arguments);
+  if (!ok) {
+    printHelp();
+    exit(1);
+  }
 
-    loadFilePaths(arguments[0]).then((paths) {
-      if (paths.isEmpty) {
-        print('Could not find any wallpapers in the provided directory.');
-        printHelp();
-      }
+  var filePaths = await loadFilePaths(arguments[0]);
+  if (filePaths.isEmpty) {
+    print('Could not find any wallpapers in the provided directory.');
+    printHelp();
+    exit(1);
+  }
 
-      buildXMLString(paths).then((xmlString) {
-        saveToFile(arguments[1], xmlString);
-      });
-    });
-  });
+  var xmlString = await buildXMLString(filePaths);
+  await saveToFile(arguments[1], xmlString);
 }
